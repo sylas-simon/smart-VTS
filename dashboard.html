@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart VTS Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="style.css"> <!-- Main CSS -->
+
+</head>
+<body>
+
+    <!-- Header Section -->
+    <header>
+        <img class="logo-left" src="Tanzania.png" alt="Left Logo">
+        <div class="center-text">
+            <h1>Jamhuri ya Muungano wa Tanzania</h1>
+            <h2>Wizara ya Uchukuzi</h2>
+            <h3>Mamlaka ya Udhibiti Usafiri Ardhini</h3>
+        </div>
+        <img class="logo-right" src="LATRA.png" alt="Right Logo">
+        <img class="user-icon" src="userprofile.png" alt="User Icon">
+        <span class="username">Admin</span> <!-- Username added below the user icon -->
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav>
+        <ul>
+            <li><a href="#">Home</a></li>
+            <li>
+                <a href="#" id="notification-btn">Notifications <span id="notification-count" style="display:none;">0</span></a>
+            </li>
+            
+            <li>
+                <a href="#">Registrations<i class="fas fa-caret-down"></i></a>
+                <!-- Dropdown Menu -->
+                <div class="dropdown-menu">
+                    <ul>
+                        <li><a href="#">Vehicles</a></li>
+                        <li><a href="#">Road Signs</a></li>
+                    </ul>
+                </div>
+            </li>
+            <li>
+                <a href="#">Track and Monitor<i class="fas fa-caret-down"></i></a>
+                <!-- Track Window -->
+                <div class="track-window">
+                    <form id="trackForm">
+                        <label for="vehicle-id">Vehicle ID:</label>
+                        <input type="text" id="vehicle-id" name="vehicle-id" required>
+                        <button type="submit">Track</button>
+                    </form>                                    
+                </div>
+            </li>
+            <li><a href="#">Report</a></li>
+        </ul>
+    </nav>
+<div id = "response"></div>
+<!-- Large Window for Vehicle Details and Google Map -->
+<div id="infoWindow" style="display: none;">
+    <div id="detailsLeft" style="background-color: #6a88e8; padding: 20px;">
+        <h3>Vehicle Details</h3>
+        <p><strong>Speed:</strong> <span id="speed">--</span> km/h</p>
+        <p><strong>Location:</strong> <span id="location">--</span></p>
+        <p><strong>Vehicle ID:</strong> <span id="vehicle-id-display">--</span></p>
+        <p><strong>Status of VTS:</strong> <span id="vts-status">--</span></p>
+        <p><strong>Driving Performance:</strong> <span id="driving-performance">--</span></p>
+        <p><strong>Driver name:</strong> <span id="driver-name">--</span></p>
+        <p><strong>Drivering license No:</strong> <span id="license">--</span></p>
+        <p><strong>speed Limit from camera</strong> <span id="speedLimit2">--</span></p>
+
+    </div>
+    
+    <div id="dynamicBackground" style="width: 100%; height: 100vh; display: flex; justify-content: center; align-items: center;">
+        <!-- Content will be dynamically updated here -->
+    </div>
+    
+
+    <div id="mapRight">
+        <!-- Google Map Embed -->
+        <iframe id="googleMap" 
+                src="https://maps.google.com/maps?q=0,0&z=12&output=embed" 
+                width="600" 
+                height="500" 
+                frameborder="0" 
+                style="border:0;" 
+                allowfullscreen="" 
+                aria-hidden="false" 
+                tabindex="0">
+        </iframe>
+    </div>
+</div>
+    
+    <!-- JavaScript -->
+    <script src="firstJavascript.js"></script>
+</body>
+</html>
