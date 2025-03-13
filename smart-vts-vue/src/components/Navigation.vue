@@ -2,6 +2,8 @@
   <nav>
     <ul>
       <li><router-link to="/" :class="{ active: $route.path === '/' }">Home</router-link></li>
+      <li><router-link to="/dashboard" :class="{ active: $route.path === '/dashboard' }">Dashboard</router-link></li>
+      <li><router-link to="/track" :class="{ active: $route.path === '/track' }">Track & Monitor</router-link></li>
       <li><router-link to="/notifications" :class="{ active: $route.path === '/notifications' }">Notifications</router-link></li>
       <li class="dropdown">
         <button @click="toggleRegistrations" class="dropdown-button" :class="{ active: isRegistrationsActive }">
@@ -10,18 +12,6 @@
         <div class="dropdown-menu" v-if="showRegistrations">
           <router-link to="/vehicles" @click="closeDropdowns" :class="{ active: $route.path === '/vehicles' }">Vehicles</router-link>
           <router-link to="/road-signs" @click="closeDropdowns" :class="{ active: $route.path === '/road-signs' }">Road Signs</router-link>
-        </div>
-      </li>
-      <li class="dropdown">
-        <button @click="toggleTrackWindow" class="dropdown-button" :class="{ active: $route.path === '/dashboard' }">
-          Track and Monitor ▼
-        </button>
-        <div class="track-window" v-if="showTrackWindow">
-          <form @submit.prevent="handleTrack">
-            <label for="vehicle-id">Vehicle ID:</label>
-            <input type="text" id="vehicle-id" v-model="vehicleId" required>
-            <button type="submit" class="track-button">Track</button>
-          </form>
         </div>
       </li>
       <li><router-link to="/report" :class="{ active: $route.path === '/report' }">Report</router-link></li>
@@ -45,8 +35,6 @@ export default {
     const router = useRouter()
     const route = useRoute()
     const showRegistrations = ref(false)
-    const showTrackWindow = ref(false)
-    const vehicleId = ref('')
 
     const isRegistrationsActive = computed(() => {
       return route.path === '/vehicles' || route.path === '/road-signs'
@@ -54,33 +42,14 @@ export default {
 
     const closeDropdowns = () => {
       showRegistrations.value = false
-      showTrackWindow.value = false
     }
 
     const toggleRegistrations = () => {
       showRegistrations.value = !showRegistrations.value
-      showTrackWindow.value = false
-    }
-
-    const toggleTrackWindow = () => {
-      showTrackWindow.value = !showTrackWindow.value
-      showRegistrations.value = false
-      // Reset form when opening
-      if (showTrackWindow.value) {
-        vehicleId.value = ''
-      }
-    }
-
-    const handleTrack = () => {
-      if (vehicleId.value) {
-        store.dispatch('trackVehicle', vehicleId.value)
-        closeDropdowns()
-        router.push('/dashboard')
-      }
     }
 
     const handleClickOutside = (event) => {
-      if (!event.target.closest('.dropdown') && !event.target.closest('.track-window')) {
+      if (!event.target.closest('.dropdown')) {
         closeDropdowns()
       }
     }
@@ -100,11 +69,7 @@ export default {
 
     return {
       showRegistrations,
-      showTrackWindow,
-      vehicleId,
       toggleRegistrations,
-      toggleTrackWindow,
-      handleTrack,
       closeDropdowns,
       isRegistrationsActive
     }
@@ -130,12 +95,10 @@ nav ul {
   align-items: center;
   justify-content: flex-start;
   width: 100%;
- 
 }
 
 nav ul li:not(.user-profile) {
   margin-right: 20px;
-  
 }
 
 nav ul li a {
@@ -210,75 +173,21 @@ nav ul li a.active {
   font-weight: bold;
 }
 
-.track-window {
-  position: absolute;
-  display: block;
-  top: 100%;
-  left: 0;
-  background-color: white;
-  padding: 20px;
-  min-width: 250px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  z-index: 1000;
-  border-radius: 4px;
-  margin-top: 5px;
-}
-
-.track-window form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.track-window label {
-  font-weight: bold;
-  color: #333;
-}
-
-.track-window input {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.track-button {
-  padding: 8px 16px;
-  background-color: #357ABD;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.track-button:hover {
-  background-color: #0a4aaa;
-}
-
 .user-profile {
   margin-left: auto;
-  display:none;
-  flex-direction: row;
-  align-items:center;
-  gap: 8px;
-  padding: 8px 16px;
-  height: 100%;
-  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .user-icon {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  object-fit:contain;
-  border: 2px solid white;
-  background-color: #0a4aaa;
-  
 }
 
 .username {
   color: white;
-  font-size: 14px;
   font-weight: 500;
-  line-height: 1;
 }
 </style> 

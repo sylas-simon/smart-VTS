@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from '@/components/Dashboard.vue'
+import DashboardView from '@/views/DashboardView.vue'
 import Home from '@/views/Home.vue'
 import Vehicles from '@/views/Vehicles.vue'
 import RoadSigns from '@/views/RoadSigns.vue'
@@ -17,6 +18,11 @@ const routes = [
   {
     path: '/dashboard',
     name: 'Dashboard',
+    component: DashboardView
+  },
+  {
+    path: '/track',
+    name: 'Track',
     component: Dashboard
   },
   {
