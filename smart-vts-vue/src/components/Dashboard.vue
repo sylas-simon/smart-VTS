@@ -8,17 +8,28 @@
           type="text" 
           v-model="selectedVehicleId" 
           placeholder="Enter vehicle plate number to track"
-          @keyup.enter="trackVehicle"
         >
-        <button @click="trackVehicle" class="track-button">
-          <i class="fas fa-search"></i>
-          Track Vehicle
-        </button>
+        <div class="button-group">
+          <button @click="trackVehicle" class="track-button" :disabled="loading">
+            <i class="fas fa-search"></i>
+            {{ loading ? 'Tracking...' : 'Track Vehicle' }}
+          </button>
+          <button @click="clearTracking" class="clear-button" :disabled="loading">
+            <i class="fas fa-times"></i>
+            Clear
+          </button>
+        </div>
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="loading-state">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading vehicle data...</p>
+    </div>
+
     <!-- Vehicle Tracking Section -->
-    <div id="infoWindow" v-show="vehicleDetails.vehicleId" class="tracking-container">
+    <div id="infoWindow" v-show="isTracking && vehicleDetails.vehicleId && selectedVehicleId === vehicleDetails.vehicleId" class="tracking-container">
       <div id="detailsLeft" class="vehicle-details">
         <div class="details-header">
           <h3>Vehicle Details</h3>
@@ -80,7 +91,7 @@
             <i class="fas fa-road"></i>
             <div class="detail-content">
               <label>Speed Limit</label>
-              <span class="value">{{ speedLimitCV }} km/h</span>
+              <span class="value">{{ speedLimit }} km/h</span>
             </div>
           </div>
         </div>
@@ -99,18 +110,27 @@
       </div>
     </div>
 
+    <!-- Vehicle Not Found Message -->
+    <div v-if="isTracking && vehicleDetails.vehicleId && selectedVehicleId !== vehicleDetails.vehicleId" class="no-vehicle-message">
+      <i class="fas fa-exclamation-circle"></i>
+      <h2>Vehicle Not Found</h2>
+      <p>No vehicle found with ID: {{ selectedVehicleId }}</p>
+      <p class="format-example">Please check the vehicle ID and try again</p>
+    </div>
+
     <!-- No Vehicle Selected Message -->
-    <div v-if="!vehicleDetails.vehicleId" class="no-vehicle-message">
+    <div v-if="!isTracking || !vehicleDetails.vehicleId" class="no-vehicle-message">
       <i class="fas fa-car"></i>
-      <h2>No Vehicle Selected</h2>
+      <h2>Track a Vehicle</h2>
       <p>Enter a vehicle plate number above to start tracking.</p>
+      <p class="format-example">Example: TZ 322 ABC</p>
     </div>
 
   </div>
 </template>
 
 <script>
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useStore } from 'vuex'
 
 export default {
@@ -118,35 +138,60 @@ export default {
   setup() {
     const store = useStore()
     const selectedVehicleId = ref('')
+    const isTracking = ref(false)
+    const loading = ref(false)
 
     const speed = computed(() => store.state.speed)
-    const speedLimitCV = computed(() => store.state.speedLimitCV)
+    const speedLimit = computed(() => store.state.speedLimit)
     const vehicleDetails = computed(() => store.state.vehicleDetails)
-    const mapUrl = computed(() => 
-'https://maps.google.com/maps?q=-6.7714281,39.2399597&t=m&z=16&output=embed'
-    )
+    const mapUrl = computed(() => {
+      const coords = vehicleDetails.value.coordinates
+      if (coords) {
+        return `https://maps.google.com/maps?q=${coords}&t=m&z=16&output=embed`
+      }
+      return 'https://maps.google.com/maps?q=-6.7714281,39.2399597&t=m&z=16&output=embed'
+    })
 
-    const trackVehicle = () => {
-      if (selectedVehicleId.value.trim()) {
-        store.dispatch('trackVehicle', selectedVehicleId.value.trim())
+    const trackVehicle = async () => {
+      if (!selectedVehicleId.value.trim()) {
+        console.log('No vehicle ID provided')
+        store.commit('SET_ERROR', 'Please enter a vehicle ID')
+        return
+      }
+
+      try {
+        console.log('Tracking vehicle:', selectedVehicleId.value)
+        loading.value = true
+        isTracking.value = true
+        await store.dispatch('trackVehicle', selectedVehicleId.value.trim())
+        console.log('Track vehicle action completed')
+      } catch (err) {
+        console.error('Error tracking vehicle:', err)
+        isTracking.value = false
+        store.commit('SET_ERROR', err.message || 'Failed to track vehicle')
+      } finally {
+        loading.value = false
       }
     }
 
-    onMounted(() => {
-      const updateInterval = setInterval(() => {
-        store.dispatch('fetchData')
-      }, 1000)
-
-      return () => clearInterval(updateInterval)
-    })
+    const clearTracking = () => {
+      selectedVehicleId.value = ''
+      isTracking.value = false
+      store.commit('CLEAR_VEHICLE_DETAILS')
+      store.commit('SET_ERROR', null)
+      store.commit('SET_VEHICLE_NOT_FOUND', false)
+    }
 
     return {
       speed,
-      speedLimitCV,
+      speedLimit,
       vehicleDetails,
       mapUrl,
       selectedVehicleId,
-      trackVehicle
+      isTracking,
+      loading,
+      trackVehicle,
+      clearTracking
     }
   }
 }
@@ -198,6 +243,11 @@ export default {
   color: #94a3b8;
 }
 
+.button-group {
+  display: flex;
+  gap: 8px;
+}
+
 .track-button {
   background: #3b82f6;
   color: white;
@@ -212,12 +262,36 @@ export default {
   transition: background-color 0.2s;
 }
 
-.track-button:hover {
+.track-button:hover:not(:disabled) {
   background: #2563eb;
 }
 
-.track-button i {
+.track-button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.clear-button {
+  background: #ef4444;
   color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+}
+
+.clear-button:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.clear-button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
 }
 
 .tracking-container {
@@ -325,7 +399,7 @@ export default {
   position: relative;
   height: 100%;
   width: 50%;
-  margin-top: -200px; /* Moves it up */
+  margin-top: 0; /* Removed negative margin */
 }
 
 .no-vehicle-message {
@@ -352,6 +426,33 @@ export default {
 }
 
 .no-vehicle-message p {
+  color: #64748b;
+}
+
+.format-example {
+  font-size: 0.875em;
+  color: #94a3b8;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.loading-state i {
+  font-size: 3em;
+  color: #94a3b8;
+  margin-bottom: 20px;
+}
+
+.loading-state p {
   color: #64748b;
 }
 

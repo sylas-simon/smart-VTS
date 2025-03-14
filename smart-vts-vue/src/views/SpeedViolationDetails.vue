@@ -87,8 +87,15 @@
           </div>
         </div>
         <div class="map-container">
-          <!-- Map will be implemented here -->
-          <div class="map-placeholder">Map View</div>
+          <iframe
+            id="googleMap"
+            :src="mapUrl"
+            width="100%"
+            height="100%"
+            style="border:0;"
+            allowfullscreen=""
+            loading="lazy"
+          ></iframe>
         </div>
       </div>
 
@@ -111,34 +118,42 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useStore } from 'vuex'
 
 export default {
   name: 'SpeedViolationDetails',
   setup() {
     const route = useRoute()
+    const store = useStore()
     
-    // Sample data - replace with actual data from your store/API
     const violation = ref({
-      vehicleId: 'V123',
-      registrationNumber: 'ABC123',
-      vehicleType: 'Heavy Truck',
-      driverName: 'John Doe',
-      licenseNumber: 'DL123456',
-      contactNumber: '+1234567890',
-      currentSpeed: 85,
-      speedLimit: 60,
-      excessSpeed: 25,
+      vehicleId: '',
+      registrationNumber: '',
+      vehicleType: '',
+      driverName: '',
+      licenseNumber: '',
+      contactNumber: '',
+      currentSpeed: 0,
+      speedLimit: 0,
+      excessSpeed: 0,
       startTime: new Date(),
-      duration: 1800000, // 30 minutes in milliseconds
-      location: 'Highway A1, Kilometer 45',
-      roadName: 'Highway A1',
-      coordinates: '12.3456, 78.9012',
+      duration: 0,
+      location: '',
+      roadName: '',
+      coordinates: '',
       isActive: true
     })
 
     const isActiveViolation = computed(() => violation.value.isActive)
+    const mapUrl = computed(() => {
+      const coords = violation.value.coordinates
+      if (coords) {
+        return `https://maps.google.com/maps?q=${coords}&t=m&z=16&output=embed`
+      }
+      return 'https://maps.google.com/maps?q=-6.7714281,39.2399597&t=m&z=16&output=embed'
+    })
 
     const formatDateTime = (date) => {
       return new Date(date).toLocaleString()
@@ -164,17 +179,86 @@ export default {
       console.log('Generating violation report')
     }
 
+    const updateViolationData = (vehicleData) => {
+      console.log('Updating violation data with:', vehicleData)
+      if (vehicleData.vehicleId === violation.value.vehicleId) {
+        // Update all fields with API data
+        violation.value = {
+          ...violation.value,
+          vehicleId: vehicleData.vehicleId || '',
+          registrationNumber: vehicleData.registrationNumber || '',
+          vehicleType: vehicleData.vehicleType || '',
+          driverName: vehicleData.driverName || '',
+          licenseNumber: vehicleData.driverLicense || '',
+          contactNumber: vehicleData.contactNumber || '',
+          currentSpeed: vehicleData.currentSpeed || 0,
+          speedLimit: vehicleData.speedLimit || 0,
+          excessSpeed: (vehicleData.currentSpeed || 0) - (vehicleData.speedLimit || 0),
+          location: vehicleData.location || '',
+          roadName: vehicleData.roadName || '',
+          coordinates: vehicleData.coordinates || '',
+          isActive: vehicleData.isOverspeed || false,
+          startTime: vehicleData.startTime || new Date(),
+          duration: vehicleData.duration || 0
+        }
+      }
+    }
+
     // Fetch violation data when component mounts
-    onMounted(() => {
+    onMounted(async () => {
       const violationId = route.params.id
       console.log('Fetching violation data for ID:', violationId)
-      // Here you would typically make an API call to fetch the violation data
-      // For now, we're using the sample data
+      
+      try {
+        // Get all vehicle data from the API
+        await store.dispatch('fetchAllVehicleData')
+        
+        // Find the notification that matches this violation ID
+        const notification = store.state.notifications.find(n => n.id === parseInt(violationId))
+        console.log('Found notification:', notification)
+        
+        if (notification) {
+          // Extract vehicle ID from the notification message
+          const vehicleIdMatch = notification.message.match(/Vehicle (.*?) exceeded/)
+          if (vehicleIdMatch) {
+            const vehicleId = vehicleIdMatch[1]
+            console.log('Extracted vehicle ID:', vehicleId)
+            violation.value.vehicleId = vehicleId
+            
+            // Get the vehicle data from the store
+            const vehicleData = store.state.vehicleDetails
+            console.log('Found vehicle data:', vehicleData)
+            
+            if (vehicleData && vehicleData.vehicleId === vehicleId) {
+              updateViolationData(vehicleData)
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching violation data:', error)
+      }
+    })
+
+    // Subscribe to store updates
+    const unsubscribe = store.subscribe((mutation, state) => {
+      if (mutation.type === 'SET_VEHICLE_DETAILS') {
+        const vehicleData = state.vehicleDetails
+        console.log('Store update received:', vehicleData)
+        if (vehicleData && vehicleData.vehicleId === violation.value.vehicleId) {
+          updateViolationData(vehicleData)
+        }
+      }
+    })
+
+    // Cleanup subscription when component is unmounted
+    onUnmounted(() => {
+      unsubscribe()
     })
 
     return {
       violation,
       isActiveViolation,
+      mapUrl,
       formatDateTime,
       formatDuration,
       contactDriver,
@@ -273,13 +357,18 @@ export default {
 
 .map-container {
   margin-top: 20px;
-  height: 300px;
-  background: #f5f5f5;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
+  height: 400px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .map-container {
+    height: 300px;
+  }
 }
 
 .actions {

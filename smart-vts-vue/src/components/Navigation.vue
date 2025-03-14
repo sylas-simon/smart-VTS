@@ -25,13 +25,11 @@
 
 <script>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useStore } from 'vuex'
 import { useRouter, useRoute } from 'vue-router'
 
 export default {
   name: 'VtsNavigation',
   setup() {
-    const store = useStore()
     const router = useRouter()
     const route = useRoute()
     const showRegistrations = ref(false)

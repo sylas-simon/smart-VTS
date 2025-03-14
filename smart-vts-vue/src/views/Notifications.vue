@@ -24,7 +24,8 @@
           v-for="notification in filteredNotifications" 
           :key="notification.id" 
           class="notification-item"
-          :class="notification.type"
+          :class="[notification.type, notification.status]"
+          @click="handleNotificationClick(notification)"
         >
           <div class="notification-icon" :class="notification.type">
             <i :class="getIcon(notification.type)"></i>
@@ -34,6 +35,7 @@
               v-if="notification.type === 'speed-violation'"
               :to="{ name: 'SpeedViolationDetails', params: { id: notification.id }}"
               class="notification-title"
+              @click.stop="markAsRead(notification.id)"
             >
               {{ notification.title }}
             </router-link>
@@ -41,6 +43,7 @@
               v-else-if="notification.type === 'reckless-driving'"
               :to="{ name: 'RecklessDrivingDetails', params: { id: notification.id }}"
               class="notification-title"
+              @click.stop="markAsRead(notification.id)"
             >
               {{ notification.title }}
             </router-link>
@@ -59,10 +62,12 @@
 
 <script>
 import { ref, computed } from 'vue'
+import { useStore } from 'vuex'
 
 export default {
-  name: 'NotificationsView',
+  name: 'NotificationsListView',
   setup() {
+    const store = useStore()
     const currentFilter = ref('all')
     
     const filters = [
@@ -72,33 +77,7 @@ export default {
       { type: 'system', label: 'System Alerts' }
     ]
 
-    // Sample notifications data - replace with actual data from your store
-    const notifications = ref([
-      {
-        id: 1,
-        type: 'speed-violation',
-        title: 'Speed Violation Detected',
-        message: 'Vehicle ID: V123 exceeded speed limit of 60 km/h',
-        time: new Date(),
-        status: 'new'
-      },
-      {
-        id: 2,
-        type: 'reckless-driving',
-        title: 'Reckless Driving Detected',
-        message: 'Vehicle ID: V456 showing aggressive driving behavior',
-        time: new Date(Date.now() - 1800000), // 30 minutes ago
-        status: 'new'
-      },
-      {
-        id: 3,
-        type: 'system',
-        title: 'System Update',
-        message: 'VTS system has been updated to version 2.1',
-        time: new Date(Date.now() - 3600000), // 1 hour ago
-        status: 'read'
-      }
-    ])
+    const notifications = computed(() => store.getters.notifications)
 
     const filteredNotifications = computed(() => {
       if (currentFilter.value === 'all') {
@@ -135,13 +114,25 @@ export default {
       return new Date(timestamp).toLocaleDateString()
     }
 
+    const markAsRead = (notificationId) => {
+      store.commit('MARK_NOTIFICATION_AS_READ', notificationId)
+    }
+
+    const handleNotificationClick = (notification) => {
+      if (notification.status === 'new') {
+        markAsRead(notification.id)
+      }
+    }
+
     return {
       currentFilter,
       filters,
       filteredNotifications,
       getNotificationCount,
       getIcon,
-      formatTime
+      formatTime,
+      markAsRead,
+      handleNotificationClick
     }
   }
 }
@@ -217,8 +208,12 @@ export default {
   transition: background-color 0.3s ease;
 }
 
-.notification-item:hover {
+.notification-item.new {
   background-color: #f8f9fa;
+}
+
+.notification-item:hover {
+  background-color: #f0f0f0;
 }
 
 .notification-item:last-child {
@@ -287,9 +282,6 @@ export default {
   border-radius: 4px;
   font-size: 12px;
   text-transform: uppercase;
-}
-
-.notification-status.new {
   background: #e3f2fd;
   color: #2196f3;
 }
