@@ -4,7 +4,16 @@
       <li><router-link to="/" :class="{ active: $route.path === '/' }">Home</router-link></li>
       <li><router-link to="/dashboard" :class="{ active: $route.path === '/dashboard' }">Dashboard</router-link></li>
       <li><router-link to="/track" :class="{ active: $route.path === '/track' }">Track & Monitor</router-link></li>
-      <li><router-link to="/notifications" :class="{ active: $route.path === '/notifications' }">Notifications</router-link></li>
+
+      <!-- Notifications Menu with Font Awesome Icon -->
+      <li class="notification-menu">
+        <router-link to="/notifications" :class="{ active: $route.path === '/notifications' }">
+          <span class="notification-text">Notifications </span>
+          <font-awesome-icon :icon="faBell" class="notification-icon"/> 
+          <span v-if="notificationCount > 0" class="notification-badge">{{ notificationCount }}</span>
+        </router-link>
+      </li>
+
       <li class="dropdown">
         <button @click="toggleRegistrations" class="dropdown-button" :class="{ active: isRegistrationsActive }">
           Registrations ▼
@@ -14,7 +23,9 @@
           <router-link to="/road-signs" @click="closeDropdowns" :class="{ active: $route.path === '/road-signs' }">Road Signs</router-link>
         </div>
       </li>
+
       <li><router-link to="/report" :class="{ active: $route.path === '/report' }">Report</router-link></li>
+
       <li class="user-profile">
         <img class="user-icon" src="@/assets/userprofile.png" alt="User Icon">
         <span class="username">Admin</span>
@@ -25,14 +36,26 @@
 
 <script>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useStore } from 'vuex'
 import { useRouter, useRoute } from 'vue-router'
+
+// Import Font Awesome
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { faBell } from '@fortawesome/free-solid-svg-icons'
+
+import notificationSound from '@/assets/tone.wav'
 
 export default {
   name: 'VtsNavigation',
+  components: { FontAwesomeIcon }, // ✅ Register the component
   setup() {
     const router = useRouter()
     const route = useRoute()
     const showRegistrations = ref(false)
+    const store = useStore()
+    
+    const notifications = computed(() => store.state.notifications) 
+    const notificationCount = computed(() => notifications.value.length) 
 
     const isRegistrationsActive = computed(() => {
       return route.path === '/vehicles' || route.path === '/road-signs'
@@ -46,13 +69,25 @@ export default {
       showRegistrations.value = !showRegistrations.value
     }
 
+        // Function to play notification sound
+        const playNotificationSound = () => {
+      const audio = new Audio(notificationSound)
+      audio.play()
+    }
+
+    // Watch for new notifications and play sound
+    watch(notificationCount, (newCount, oldCount) => {
+      if (newCount > oldCount) {
+        playNotificationSound()
+      }
+    })
+    
     const handleClickOutside = (event) => {
       if (!event.target.closest('.dropdown')) {
         closeDropdowns()
       }
     }
 
-    // Watch for route changes
     watch(() => router.currentRoute.value, () => {
       closeDropdowns()
     })
@@ -69,7 +104,10 @@ export default {
       showRegistrations,
       toggleRegistrations,
       closeDropdowns,
-      isRegistrationsActive
+      isRegistrationsActive,
+      notifications,
+      notificationCount,
+      faBell // ✅ Return icon to use in template
     }
   }
 }
@@ -188,4 +226,26 @@ nav ul li a.active {
   color: white;
   font-weight: 500;
 }
-</style> 
+
+/* Notification Badge Styling */
+.notification-menu {
+  position: relative;
+}
+
+.notification-icon {
+  font-size: 24px;
+  color: white;
+}
+
+.notification-badge {
+  background: red;
+  color: white;
+  border-radius: 50%;
+  padding: 4px 8px;
+  font-size: 12px;
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  font-weight: bold;
+}
+</style>

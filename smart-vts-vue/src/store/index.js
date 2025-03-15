@@ -7,7 +7,7 @@ const API_BASE_URL = 'http://localhost:5000' // Using localhost:5000 as the base
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 5000,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
@@ -97,7 +97,7 @@ export default createStore({
       const existingNotification = state.notifications.find(n => 
         n.type === notification.type && 
         n.message === notification.message &&
-        (Date.now() - n.time) < 5 * 60 * 1000 // Within 5 minutes
+        (Date.now() - n.time) < 2* 1000 // Within 1 minutes
       )
       
       if (!existingNotification) {
@@ -175,7 +175,7 @@ export default createStore({
             const currentTime = new Date()
             const lastOverspeedTime = this.state.lastOverspeedTime
             
-            if (!lastOverspeedTime || (currentTime - lastOverspeedTime) > 5 * 60 * 1000) {
+            if (!lastOverspeedTime || (currentTime - lastOverspeedTime) > 5  * 1000) {
               const notification = {
                 id: Date.now(),
                 type: 'speed-violation',

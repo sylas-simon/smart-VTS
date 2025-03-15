@@ -130,7 +130,7 @@
 </template>
 
 <script>
-import { computed, ref } from 'vue'
+import { computed, ref, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
 
 export default {
@@ -140,6 +140,7 @@ export default {
     const selectedVehicleId = ref('')
     const isTracking = ref(false)
     const loading = ref(false)
+    let trackingInterval = null  // Holds the interval reference
 
     const speed = computed(() => store.state.speed)
     const speedLimit = computed(() => store.state.speedLimit)
@@ -152,7 +153,19 @@ export default {
       return 'https://maps.google.com/maps?q=-6.7714281,39.2399597&t=m&z=16&output=embed'
     })
 
-    const trackVehicle = async () => {
+    const fetchTrackingData = async () => {
+      try {
+        if (selectedVehicleId.value.trim()) {
+          console.log('Fetching vehicle data...')
+          await store.dispatch('trackVehicle', selectedVehicleId.value.trim())
+        }
+      } catch (err) {
+        console.error('Error fetching vehicle data:', err)
+        store.commit('SET_ERROR', err.message || 'Failed to fetch data')
+      }
+    }
+
+    const startTracking = async () => {
       if (!selectedVehicleId.value.trim()) {
         console.log('No vehicle ID provided')
         store.commit('SET_ERROR', 'Please enter a vehicle ID')
@@ -160,27 +173,45 @@ export default {
       }
 
       try {
-        console.log('Tracking vehicle:', selectedVehicleId.value)
+        console.log('Starting tracking:', selectedVehicleId.value)
         loading.value = true
         isTracking.value = true
-        await store.dispatch('trackVehicle', selectedVehicleId.value.trim())
-        console.log('Track vehicle action completed')
+        await fetchTrackingData()
+
+        // Start polling every 5 seconds
+        trackingInterval = setInterval(fetchTrackingData, 5000)
+
       } catch (err) {
-        console.error('Error tracking vehicle:', err)
+        console.error('Error starting tracking:', err)
         isTracking.value = false
-        store.commit('SET_ERROR', err.message || 'Failed to track vehicle')
+        store.commit('SET_ERROR', err.message || 'Failed to start tracking')
       } finally {
         loading.value = false
       }
     }
 
-    const clearTracking = () => {
+    const stopTracking = () => {
       selectedVehicleId.value = ''
       isTracking.value = false
+
       store.commit('CLEAR_VEHICLE_DETAILS')
       store.commit('SET_ERROR', null)
       store.commit('SET_VEHICLE_NOT_FOUND', false)
+
+      // Stop the tracking updates
+      if (trackingInterval) {
+        clearInterval(trackingInterval)
+        trackingInterval = null
+      }
     }
+
+    // Cleanup when the component is destroyed
+    onUnmounted(() => {
+      if (trackingInterval) {
+        clearInterval(trackingInterval)
+        trackingInterval = null
+      }
+    })
 
     return {
       speed,
@@ -190,11 +221,12 @@ export default {
       selectedVehicleId,
       isTracking,
       loading,
-      trackVehicle,
-      clearTracking
+      trackVehicle: startTracking,
+      clearTracking: stopTracking
     }
   }
 }
+
 </script>
 
 <style scoped>
